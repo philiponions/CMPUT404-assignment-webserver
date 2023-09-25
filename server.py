@@ -29,25 +29,13 @@ import os
 # try: curl -v -X GET http://127.0.0.1:8080/
 
 
-available_routes = {
-    "/": 'Hello, World!',
-    "/test": "Nice!"
-}
-
 class MyWebServer(socketserver.BaseRequestHandler):
-    # def __init__(self, request: _RequestType, client_address: _RetAddress, server: BaseServer) -> None:
-    #     super().__init__(request, client_address, server)
-    #     self.routes = {
-    #         '/': 'Hello, World!',
-    #     }
 
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        # print ("Got a request of: %s\n" % self.data)
         res = self.handle_route(self.data)
         print(res)
         self.request.sendall(res)
-        # self.request.sendall(bytearray("OK",'utf-8'))
 
     def handle_route(self, data):        
         lines = str(data).split()
