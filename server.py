@@ -1,5 +1,7 @@
 #  coding: utf-8 
+# from _socket import _RetAddress
 import socketserver
+import os
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 # 
@@ -27,12 +29,85 @@ import socketserver
 # try: curl -v -X GET http://127.0.0.1:8080/
 
 
+available_routes = {
+    "/": 'Hello, World!',
+    "/test": "Nice!"
+}
+
 class MyWebServer(socketserver.BaseRequestHandler):
-    
+    # def __init__(self, request: _RequestType, client_address: _RetAddress, server: BaseServer) -> None:
+    #     super().__init__(request, client_address, server)
+    #     self.routes = {
+    #         '/': 'Hello, World!',
+    #     }
+
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print ("Got a request of: %s\n" % self.data)
-        self.request.sendall(bytearray("OK",'utf-8'))
+        # print ("Got a request of: %s\n" % self.data)
+        res = self.handle_route(self.data)
+        print(res)
+        self.request.sendall(res)
+        # self.request.sendall(bytearray("OK",'utf-8'))
+
+    def handle_route(self, data):        
+        lines = str(data).split()
+        print(lines)
+
+        # Assuming self.data contains the request
+        http_response = "HTTP/1.1 200 OK\r\n"        
+
+        if "GET" in lines[0]:
+            try:
+                if lines[1].endswith(".html"):
+                    http_response += "Content-Type: text/html\r\n"
+                    http_response += "\r\n"  # Extra newline to indicate end of headers
+                    with open("www/" + lines[1], "r") as f:
+                        lines = f.readlines()
+                        for line in lines:
+                            http_response += line
+                
+                elif lines[1].endswith(".css/"):
+                    http_response += "Content-Type: text/css\r\n"
+                    http_response += "\r\n"  # Extra newline to indicate end of headers
+                    f_name = lines[1].replace(".css/", ".css")
+                    with open("www/" + f_name, "r") as f:
+                        lines = f.readlines()
+                        for line in lines:
+                            http_response += line
+                
+                elif lines[1].endswith("/"):
+                    print("here2")
+                    http_response += "Content-Type: text/html\r\n"
+                    http_response += "\r\n"  # Extra newline to indicate end of headers
+                    with open("www/" + lines[1] + "index.html", "r") as f:
+                        lines = f.readlines()
+                        for line in lines:
+                            http_response += line
+                else:
+                    redirect_url = "http://127.0.0.1:8080" + lines[1] + "/"
+                    http_response = "HTTP/1.1 301 Moved Permanently\r\n"                    
+                    http_response += "Content-Type: text/html\r\n"
+                    http_response += f"Location: {redirect_url}"
+
+                return bytes(http_response, "utf-8")
+            
+            except Exception as e:
+                print(e)
+                http_response = "HTTP/1.1 404 Not Found\r\n" 
+                http_response += "Content-Type: text/html\r\n"
+                http_response += "\r\n"  # Extra newline to indicate end of headers
+                http_response += "<html><body>404 Not Found</body></html>"
+   
+                return bytes(http_response, "utf-8")
+            
+        else: # This server can't support any other method
+            http_response = b"HTTP/1.1 405 Method Not Allowed\r\n"
+            http_response += b"Content-Type: text/html\r\n"
+            http_response += b"\r\n"  # Extra newline to indicate end of headers
+            http_response += b"<html><body>405 Method Not Allowed</body></html>"
+
+            return http_response
+            
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
