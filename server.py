@@ -34,12 +34,12 @@ class MyWebServer(socketserver.BaseRequestHandler):
     def handle(self):
         self.data = self.request.recv(1024).strip()
         res = self.handle_route(self.data)
-        print(res)
+        # print(res)
         self.request.sendall(res)
 
     def handle_route(self, data):        
         lines = str(data).split()
-        print(lines)
+        # print(lines)
 
         # Assuming self.data contains the request
         http_response = "HTTP/1.1 200 OK\r\n"        
@@ -49,41 +49,48 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 if lines[1].endswith(".html"):
                     http_response += "Content-Type: text/html\r\n"
                     http_response += "\r\n"  # Extra newline to indicate end of headers
+                    
+                    # We want to only server files within www/
                     with open("www/" + lines[1], "r") as f:
+
+                        # Read contents of html file
                         lines = f.readlines()
                         for line in lines:
                             http_response += line
                 
-                elif lines[1].endswith(".css/"):
+                # Serve css
+                elif lines[1].endswith(".css"):
                     http_response += "Content-Type: text/css\r\n"
-                    http_response += "\r\n"  # Extra newline to indicate end of headers
-                    f_name = lines[1].replace(".css/", ".css")
-                    with open("www/" + f_name, "r") as f:
+                    http_response += "\r\n" 
+                    # f_name = lines[1].replace(".css/", ".css")
+                    with open("www/" + lines[1], "r") as f:
+
+                        # Read contents of css file
                         lines = f.readlines()
                         for line in lines:
                             http_response += line
                 
                 elif lines[1].endswith("/"):
-                    print("here2")
                     http_response += "Content-Type: text/html\r\n"
-                    http_response += "\r\n"  # Extra newline to indicate end of headers
+                    http_response += "\r\n"  
                     with open("www/" + lines[1] + "index.html", "r") as f:
                         lines = f.readlines()
                         for line in lines:
                             http_response += line
                 else:
+                    # No slash, update the link with a slash
                     redirect_url = "http://127.0.0.1:8080" + lines[1] + "/"
                     http_response = "HTTP/1.1 301 Moved Permanently\r\n"                    
                     http_response += "Content-Type: text/html\r\n"
                     http_response += f"Location: {redirect_url}"
 
+                # Convert string into bytes
                 return bytes(http_response, "utf-8")
             
             except Exception as e:
-                print(e)
                 http_response = "HTTP/1.1 404 Not Found\r\n" 
                 http_response += "Content-Type: text/html\r\n"
-                http_response += "\r\n"  # Extra newline to indicate end of headers
+                http_response += "\r\n" 
                 http_response += "<html><body>404 Not Found</body></html>"
    
                 return bytes(http_response, "utf-8")
@@ -91,7 +98,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         else: # This server can't support any other method
             http_response = b"HTTP/1.1 405 Method Not Allowed\r\n"
             http_response += b"Content-Type: text/html\r\n"
-            http_response += b"\r\n"  # Extra newline to indicate end of headers
+            http_response += b"\r\n"  
             http_response += b"<html><body>405 Method Not Allowed</body></html>"
 
             return http_response
